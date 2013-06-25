@@ -4,7 +4,7 @@
   <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js'></script>
   <link rel="stylesheet" type="text/css" href="https://www.firebase.com/css/example.css">
   <style>
-  #debugDiv{
+	#debugDiv{
 		overflow: auto;
 		height: 230px;
 		width: 100%;
@@ -20,6 +20,13 @@
 	</style>
 </head>
 <body>
+Room:
+<input type="radio" name="room" id="byDomain"  value="domain"   onclick="changeRoom(this)">Domain 
+<input type="radio" name="room" id="byURL"     value="url"      onclick="changeRoom(this)" checked="checked">URL 
+<input type="radio" name="room" id="byTitle"   value="title"    onclick="changeRoom(this)">Title 
+<input type="radio" name="room" id="byKeyword" value="note"  onclick="changeRoom(this)">Keyword 
+
+
 <div id='messagesDiv'></div>
 <input type='text' id='nameInput' placeholder='Name'>
 <input type='text' id='messageInput' placeholder='Message...'>
@@ -55,19 +62,35 @@
 
 		for ( var i = 0; i < prmarr.length; i++) {
 			var tmparr = prmarr[i].split("=");
-			params[tmparr[0]] = tmparr[1];
+			params[tmparr[0]] = decodeURIComponent(tmparr[1]);
 		}
 		if(debug){
+			debugMsg("domain", params.domain);
 			debugMsg("url", params.url);
 			debugMsg("title", params.title);
-			debugMsg("notes", params.notes);
+			debugMsg("note", params.note);
 		}
 		return params;
 	}
 	
+	//return GET Parameters 
+	function getUrlParam(paramName){
+		var prmstr = window.location.search.substr(1);
+		var prmarr = prmstr.split("&");
+		var params = {};
+
+		for ( var i = 0; i < prmarr.length; i++) {
+			var tmparr = prmarr[i].split("=");
+			if(tmparr[0] == paramName) return decodeURIComponent(tmparr[1]);
+		}
+
+		return "";
+	}
+	
 	// prepare a reference to the root of the chat data.
+   var baseUrl = "https://j3cvrchc8cm.firebaseio-demo.com/";
    var params = getUrlParameters();
-   var url = "https://j3cvrchc8cm.firebaseio-demo.com/";
+   var url = baseUrl;
    if(params.url)  url += "url/" +params.url.hashCode();
    if(debug)debugMsg("root", url);
    
@@ -83,14 +106,40 @@
       $('#messageInput').val('');
     }
   });
+  
+  
+function displayMessage(snapshot) {
+    var message = snapshot.val();
+    $('<div/>').text(message.text).prepend($('<em/>')
+      .text(message.name+': ')).appendTo($('#messagesDiv'));
+    $('#messagesDiv')[0].scrollTop = $('#messagesDiv')[0].scrollHeight;
+  }
+  
+messagesRef.limit(100).on('child_added', displayMessage);
+
+function changeRoom(ele){
+
+	if(debug)debugMsg("new root", getUrlParam(ele.value));
+	var room = ele.value +"/" +getUrlParam(ele.value).hashCode();
+	url = baseUrl + room;
+	if(debug)debugMsg("new url", url);
+	$('#messagesDiv').empty();
+	messagesRef.off();
+	messagesRef = new Firebase(url);
+	messagesRef.limit(100).on('child_added', displayMessage);
+	
+	
+}
 
   // Add a callback that is triggered for each chat message.
-  messagesRef.limit(10).on('child_added', function (snapshot) {
+  /*
+  messagesRef.limit(100).on('child_added', function (snapshot) {
     var message = snapshot.val();
     $('<div/>').text(message.text).prepend($('<em/>')
       .text(message.name+': ')).appendTo($('#messagesDiv'));
     $('#messagesDiv')[0].scrollTop = $('#messagesDiv')[0].scrollHeight;
   });
+  */
 </script>
 </body>
 </html>
