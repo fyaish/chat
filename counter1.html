@@ -1,0 +1,106 @@
+<html>
+<head>
+  <script src="https://cdn.firebase.com/v0/firebase.js"></script>
+  <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js'></script>
+  <link rel="stylesheet" type="text/css" href="https://www.firebase.com/css/example.css">
+  <style>
+  #debugDiv{
+		overflow: auto;
+		height: 230px;
+		width: 100%;
+		padding: 10px;
+		border: 2px solid #424547;
+		margin-bottom: 5px;
+		font-family: monospace, "Consolas","Bitstream Vera Sans Mono","Courier New",Courier,monospace!important;
+		text-align: left;
+		background-color: black;
+		color: white;
+		font-size: 0.6em!important;
+	}
+	</style>
+</head>
+<body>
+<input type='text' id='userInput' placeholder='User' value='Fuad'>
+
+<select id='countersListInput'>
+  <option value="default">default</option>
+  <option value="new...">new...</option>
+</select>
+<input type='text' id='counterInput' placeholder='New Counter'>
+
+<button type="button" onclick="nextCount()">Next Count</button>
+
+<button type="button" onclick="getCountersList()">Get Counters List</button>
+<br/><br/><br/>
+<div id='debugDiv'></div>
+<script>
+	var baseUrl = "https://j3cvrchc8cm.firebaseio-demo.com/";
+	var user = "default";
+	var counter = "default";
+	
+	var debug = 1; //enable debug 	
+	//display of debug messages in debugDiv
+	function debugMsg(title, msg){
+		$('<div/>').text(msg).prepend($('<i/>')
+			  .text(title+': ')).appendTo($('#debugDiv'));
+			$('#debugDiv')[0].scrollTop = $('#debugDiv')[0].scrollHeight;		
+	}
+	
+	//get hash code of a string
+	String.prototype.hashCode = function(){
+		var hash = 0, i, char;
+		if (this.length == 0) return hash;
+		for (i = 0, l = this.length; i < l; i++) {
+			char  = this.charCodeAt(i);
+			hash  = ((hash<<5)-hash)+char;
+			hash |= 0; // Convert to 32bit integer
+		}
+		return hash;
+	};
+	
+function nextCount(){
+    var user = $('#userInput').val();
+    var counter = $('#counterInput').val();
+    
+    
+    var url = baseUrl + "user/" +user +"/counters/" +counter;
+    debugMsg("root", url);
+    
+   // Get a reference to the root of the chat data.
+   var countRef = new Firebase(url);
+       
+    //messagesRef.push({name:name, text:text});
+	
+	countRef.transaction(function(current_value) {
+	  return current_value + 1;
+	}, function(error, committed, snapshot) {
+		debugMsg('Was there an error? ' , error);
+		debugMsg('Did we commit the transaction? ' , committed);
+		debugMsg('The final value is: ', snapshot.val());
+	});
+}
+
+function displayCounters(snapshot) {
+    debugMsg('displayCounters: ', snapshot.name());
+    debugMsg('displayCounters: ', snapshot.val());
+    
+    $('#countersListInput').append($('<option>', {
+        value: snapshot.name(),
+        text: snapshot.name()
+    }));
+    
+  
+  }
+  
+function getCountersList(){
+    var user = $('#userInput').val();
+	var countersListUlr  = baseUrl  + "user/" +user +"/counters";
+	debugMsg('getCountersList: ',countersListUlr);
+	var countersListRef = new Firebase(countersListUlr);
+	countersListRef.limit(100).on('child_added', displayCounters);
+}
+
+getCountersList();
+</script>
+</body>
+</html>
